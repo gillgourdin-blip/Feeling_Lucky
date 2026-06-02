@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feeling Lucky - Profielen</title>
+
+<style>
+* {
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Arial,-serif;
+background:#111827;
+color:white;
+min-height:100vh;
+padding:20px;
+}
+
+.container{
+max-width:700px;
+margin:auto;
+}
+
+.card{
+background:#1f2937;
+padding:20px;
+border-radius:16px;
+margin-bottom:20px;
+}
+
+h1,h2{
+margin-bottom:15px;
+}
+
+input, textarea, select{
+width:100%;
+padding:12px;
+margin-top:8px;
+margin-bottom:15px;
+border:none;
+border-radius:10px;
+background:#374151;
+color:white;
+}
+
+button{
+padding:12px 16px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+background:#fbbf24;
+color:black;
+font-weight:bold;
+margin-right:10px;
+margin-top:10px;
+}
+
+button.secondary{
+background:#374151;
+color:white;
+}
+
+.task{
+:#111827;
+padding:15px;
+border-radius:12px;
+margin-bottom:15px;
+}
+
+.hidden{
+display:none;
+}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
+.status{
+font-size:14px;
+padding:6px 10px;
+border-radius20px;
+display:inline-block;
+- top:10px;
+}
+
+.available{
+background:#065f46;
+}
+
+.drawn{
+background:#7c2d12;
+}
+
+.manual{
+background:#1d4ed8;
+}
+
+.theme-title{
+margin-top:20px;
+margin-bottom:10px;
+color:#fbbf24;
+}
+</>
+</head>
+<body>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div id="loginScreen" class="card">
+<h1>🍀 Feeling Lucky</h1>
+
+<h2>Profiel aanmaken</h2>
+
+<input type="text" id="registerName" placeholder="Naam profiel">
+<input type="password" id="registerPassword" placeholder="Wachtwoord">
+
+<button onclickregister()">Profiel maken</button>
+
+<hr style="margin:20px 0; border-color:#374151;">
+
+2>Inloggen</h>
+
+<input type="text" id="loginName" placeholder="Naam profiel">
+<input type="password" id="loginPassword" placeholder="Wachtwoord">
+
+<button onclick="login()">Inloggen</button>
+</div>
+
+<!-- APP -->
+<div id="appScreen" class="hidden">
+
+<div class="topbar">
+<h2 id="welcomeText"></h2>
+
+<button class="secondary" onclick="logout()">Uitloggen</>
+</div>
+
+<div class="card">
+
+<h2>Nieuwe opdracht</h2>
+
+<select id="theme">
+<option value="connectie"> Connectie</option>
+<option value="ontspanning">🌿 Ontspanning</option>
+<option value="intiem">🔥 Intiem</option>
+</select>
+
+<textarea id="taskText" placeholder="Typ hier een opdracht"></textarea>
+
+ onclick="addTask()">Toevoegen</button>
+
+</div>
+
+<div class="card">
+
+<h2>🎲 Willekeurige opdracht</h2>
+
+<button onclick="drawTask()">Trek opdracht</button>
+
+<div id="drawResult" style="margin-top:20px;"></div>
+
+</div>
+
+<div class="card">
+
+<h2>Mijn</h2>
+
+<div idtasksContainer"></div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+let currentUser = null;
+
+function getProfiles(){
+return JSON.parse(localStorage.getItem("profiles") || "{}");
+}
+
+function saveProfiles(data){
+localStorage.setItem("profiles", JSON.stringify(data));
+}
+
+function register(){
+
+const name = document.getElementById("registerName").value.trim();
+const password = document.getElementById("registerPassword").value;
+
+if(!name || !password){
+alert("Vul alles in");
+return;
+}
+
+const profiles = getProfiles();
+
+if(profiles[name]){
+alert("Profiel bestaat al");
+return;
+}
+
+profiles[name] = {
+password: password,
+tasks:[]
+};
+
+saveProfiles(profiles);
+
+alert("Profiel aangemaakt");
+}
+
+function login(){
+
+const name = document.getElementById("loginName").value.trim();
+const password = document.getElementById("loginPassword").value;
+
+const profiles = getProfiles();
+
+if(!profiles[name]){
+alert("Profiel bestaat niet");
+return;
+}
+
+if(profiles[name].password !==){
+alert("Fout wachtwoord");
+return;
+}
+
+currentUser = name;
+
+document.getElementById("loginScreen").classList.add("hidden");
+documentElementById("appScreen").classList.remove("hidden");
+
+document.getElementById("welcomeText").innerText =
+"Welkom, " + currentUser;
+
+renderTasks();
+}
+
+function logout(){
+
+currentUser = null;
+
+document.getElementById("loginScreen").classList.remove("hidden");
+document.getElementById("appScreen").classList.add("hidden");
+
+document.getElementById("drawResult").innerHTML = "";
+}
+
+function addTask(){
+
+const theme = document.getElementById("theme").value;
+ text = document.getElementById("taskText").value.trim();
+
+if(!text){
+alert("Geef een opdracht in");
+return;
+}
+
+const profiles = getProfiles();
+
+profiles[currentUser].tasks.push({
+id: Date.now(),
+theme,
+text,
+status:"available"
+});
+
+saveProfiles(profiles);
+
+document.getElementById("taskText").value = "";
+
+renderTasks();
+}
+
+function renderTasks(){
+
+const container = document.getElementById("tasksContainer");
+
+container.innerHTML = "";
+
+const profiles = getProfiles();
+
+const tasks = profiles[currentUser].tasks;
+
+const themes = {
+connectie:"🤍 Connectie",
+ontspanning:"🌿 Ontspanning",
+intiem:"🔥 Intiem"
+};
+
+Object.keys(themes).forEach(themeKey=>{
+
+const themeTasks = tasks.filter(t=>t.theme===themeKey);
+
+if(themeTasks.length===0) return;
+
+const title = document.createElement("h3");
+title.className = "theme-title";
+title.innerText = themes[themeKey];
+
+container.appendChild(title);
+
+themeTasks.forEach(task=>const div = document.createElement("div");
+div.className = "task";
+
+let statusClass = "available";
+
+if(task.status==="drawn"){
+statusClass = "drawn";
+}
+
+if(task.status==="manual"){
+statusClass = "manual";
+}
+
+div.innerHTML = `
+<p>${task.text}</p>
+
+<div classstatus ${statusClass}">
+${translate(task.status)}
+</div>
+
+<select onchange="changeStatus(${task.id}, this.value)">
+<option value="available" ${task.status==="available"?"selected":""}>
+Beschikbaar
+</option>
+
+<option value="drawn" ${task.status==="drawn"?"selected":""}>
+Getrokken
+</option>
+
+<option value="manual" ${task.status==="manual"?"selected":""}>
+Manueel getrokken
+</option>
+</select>
+
+<button onclick="deleteTask(${task.id})">
+Verwijderen
+</button>
+`;
+
+container.appendChild);
+
+});
+
+});
+}
+
+function translateStatus(status){
+
+if(status==="available") return "Beschikbaar";
+if(status==="drawn") return "Getrokken";
+if(status==="manual") return "Manueel gemarkeerd";
+
+return status;
+}
+
+function changeStatus(id, status){
+
+const profiles = getProfiles();
+
+const task = profiles[currentUser].tasks.find(
+t=>t.id===id
+);
+
+task.status = status;
+
+saveProfiles(profiles);
+
+renderTasks();
+}
+
+function deleteTask(id){
+
+const profiles = getProfiles();
+
+[currentUser].tasks =
+profiles[currentUser].tasks.filter(
+t=>t.id!==id
+);
+
+saveProfiles(profiles);
+
+renderTasks();
+}
+
+function drawTask(){
+
+const profiles = getProfiles();
+
+const available = profiles[currentUser].tasks.filter(
+t=>t.status==="available"
+);
+
+if(available.length===0){
+alert("Geen beschikbare opdrachten");
+return;
+}
+
+const picked =
+available[Math.floor(Math.random()*available.length)];
+
+picked.status = "drawn";
+
+saveProfiles(profilesdocument.getElementById("drawResult").innerHTML = `
+<div class="task">
+<h3>${picked.theme}</h3>
+<p style="margin-top:10px;">${picked.text}</p>
+</div>
+`;
+
+renderTasks();
+}
+</script>
+
+</body>
+</html>
