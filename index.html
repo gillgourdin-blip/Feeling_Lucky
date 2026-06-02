@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Feeling Lucky?</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Feeling Lucky" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: Georgia, serif;
+      color: #f5f0e8;
+      overflow-x: hidden;
+    }
+    @keyframes twinkle  { from{opacity:.2} to{opacity:.9} }
+    @keyframes fadeIn   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+    @keyframes spin     { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes reveal   { from{opacity:0;transform:scale(.85)} to{opacity:1;transform:scale(1)} }
+    @keyframes shake    { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+
+    .stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+    .star{position:absolute;border-radius:50%;background:#C9A84C;animation:twinkle 3s ease-in-out infinite alternate}
+
+    .screen{display:none;animation:fadeIn .5s ease}
+    .screen.active{display:block}
+
+    .wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:28px 18px 56px}
+
+    h1{font-size:40px;color:#C9A84C;font-style:italic;letter-spacing:2px;text-align:center;margin-bottom:4px}
+    h2{font-size:22px;color:#C9A84C;margin-bottom:20px}
+    h3{font-size:17px;color:#C9A84C;margin-bottom:10px}
+    .subtitle{color:rgba(245,240,232,.55);font-style:italic;text-align:center;margin-bottom:36px;font-size:14px}
+
+    .btn{cursor:pointer;border:none;border-radius:10px;font-family:Georgia,serif;transition:all .2s;width:100%;padding:15px;font-size:16px;margin-bottom:12px}
+    .btn:active{transform:scale(.97)}
+    .btn-gold{background:linear-gradient(135deg,#C9A84C,#a07830);color:#1a1a2e;font-weight:bold}
+    .btn-green{background:linear-gradient(135deg,#2D5016,#4A7C1F);color:#f5f0e8}
+    .btn-ghost{background:rgba(255,255,255,.07);color:rgba(245,240,232,.6);border:1px solid rgba(201,168,76,.2)}
+    .btn-back{background:rgba(255,255,255,.08);color:#f5f0e8;width:auto;padding:8px 16px;font-size:14px;margin-bottom:0;border-radius:8px}
+    .btn-small{width:auto;padding:4px 12px;font-size:12px;margin-bottom:0;border-radius:20px}
+    .btn-reset{background:rgba(139,46,46,.3);color:#e88;border:1px solid rgba(139,46,46,.4)}
+    .btn-mark{background:rgba(201,168,76,.25);color:#C9A84C;border:1px solid rgba(201,168,76,.4)}
+    .btn-disabled{opacity:.4;pointer-events:none}
+    .btn-danger{background:rgba(139,46,46,.2);color:#e88;border:1px solid rgba(139,46,46,.3);font-size:13px;padding:10px}
+
+    /* Profile grid */
+    .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+    .profile-card{background:rgba(255,255,255,.06);border:1.5px solid rgba(201,168,76,.25);border-radius:16px;padding:24px 14px;text-align:center;cursor:pointer;transition:all .2s}
+    .profile-card:hover{background:rgba(201,168,76,.12);border-color:rgba(201,168,76,.5);transform:translateY(-2px)}
+    .profile-card:active{transform:scale(.97)}
+    .profile-card .profile-avatar{font-size:44px;margin-bottom:10px}
+    .profile-card .profile-name{font-size:18px;color:#C9A84C;font-style:italic;font-weight:bold}
+    .profile-card .profile-sub{font-size:11px;color:rgba(245,240,232,.35);margin-top:4px}
+    .profile-card.registered .profile-sub{color:#7bc44e}
+
+    /* Auth form */
+    .auth-form{background:rgba(255,255,255,.05);border:1px solid rgba(201,168,76,.2);border-radius:16px;padding:24px 20px;margin-bottom:16px}
+    .auth-form .avatar-big{font-size:52px;text-align:center;margin-bottom:12px}
+    .auth-form label{font-size:13px;color:rgba(245,240,232,.5);display:block;margin-bottom:6px}
+    .auth-input{background:rgba(255,255,255,.08);border:1px solid rgba(201,168,76,.3);border-radius:8px;color:#f5f0e8;font-family:Georgia,serif;padding:10px 14px;width:100%;font-size:15px;outline:none;transition:border-color .2s;margin-bottom:14px}
+    .auth-input:focus{border-color:#C9A84C}
+    .auth-input::placeholder{color:rgba(245,240,232,.3)}
+    .auth-error{color:#e88;font-size:13px;margin-bottom:12px;min-height:18px}
+    .auth-error.shake{animation:shake .4s ease}
+    .auth-hint{font-size:12px;color:rgba(245,240,232,.3);margin-bottom:14px;line-height:1.5}
+    .pw-strength{height:3px;border-radius:2px;margin-top:-10px;margin-bottom:14px;transition:all .3s;background:rgba(255,255,255,.1)}
+    .pw-strength.weak{background:#e88;width:30%}
+    .pw-strength.ok{background:#C9A84C;width:65%}
+    .pw-strength.strong{background:#7bc44e;width:100%}
+
+    /* Badge / header */
+    .header-row{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+    .profile-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:20px;padding:4px 12px;font-size:13px;color:#C9A84C;margin-bottom:18px}
+    .profile-switch-btn{background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.2);color:rgba(245,240,232,.5);font-family:Georgia,serif;font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;transition:all .2s;margin-bottom:0;width:auto}
+    .profile-switch-btn:hover{background:rgba(201,168,76,.15);color:#C9A84C}
+
+    /* Theme tabs */
+    .theme-tabs{display:flex;gap:8px;margin-bottom:22px}
+    .theme-tab{flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.07);color:#f5f0e8;transition:all .2s;text-align:center}
+    .theme-tab.active-connectie{background:#C9A84C;color:#1a1a2e;font-weight:bold;border-color:#C9A84C}
+    .theme-tab.active-ontspanning{background:#4A7C1F;color:#f5f0e8;font-weight:bold;border-color:#4A7C1F}
+    .theme-tab.active-intiem{background:#8B2E2E;color:#f5f0e8;font-weight:bold;border-color:#8B2E2E}
+
+    /* Tasks */
+    .task-group{display:flex;flex-direction:column;gap:14px}
+    .task-item label{font-size:13px;color:rgba(245,240,232,.45);display:block;margin-bottom:6px}
+    .task-item textarea{background:rgba(255,255,255,.08);border:1px solid rgba(201,168,76,.3);border-radius:8px;color:#f5f0e8;font-family:Georgia,serif;padding:10px 14px;width:100%;resize:vertical;outline:none;font-size:14px;line-height:1.5;transition:border-color .2s}
+    .task-item textarea:focus{border-color:#C9A84C}
+    .task-item textarea::placeholder{color:rgba(245,240,232,.3)}
+    .drawn-tag{margin-left:8px;color:#C9A84C;font-size:11px}
+
+    .divider{border:none;border-top:1px solid rgba(201,168,76,.2);margin:20px 0}
+    .divider-gold{border-top:2px solid #C9A84C}
+
+    .stats-box{background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);border-radius:12px;padding:14px;text-align:center;margin-top:24px}
+    .stats-box p{color:#C9A84C;font-size:14px}
+
+    /* Draw */
+    .draw-emoji{font-size:60px;text-align:center;margin-bottom:16px;animation:pulse 2s ease infinite}
+    .draw-label{color:rgba(245,240,232,.5);letter-spacing:3px;font-size:12px;text-transform:uppercase;text-align:center;margin-bottom:8px}
+    .draw-theme{color:#C9A84C;font-size:26px;font-style:italic;text-align:center;margin-bottom:24px}
+    .draw-card{background:rgba(201,168,76,.1);border:2px solid #C9A84C;border-radius:16px;padding:28px 22px;margin-bottom:28px;animation:reveal .5s ease}
+    .draw-card p{font-size:20px;font-style:italic;line-height:1.6;text-align:center}
+    .draw-btns{display:flex;gap:12px}
+    .draw-btns .btn{margin-bottom:0}
+
+    .spinning{animation:spin .8s linear infinite;display:inline-block}
+
+    /* Backend */
+    .backend-task{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;margin-bottom:8px}
+    .backend-task .task-text{flex:1}
+    .backend-task .task-text .task-num{font-size:12px;color:rgba(245,240,232,.4);margin-bottom:2px}
+    .backend-task .task-text .task-val{font-size:14px}
+    .backend-task .task-actions{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+    .tag{font-size:11px;padding:3px 9px;border-radius:20px}
+    .tag-drawn{background:rgba(201,168,76,.3);color:#C9A84C}
+    .tag-available{background:rgba(74,124,31,.3);color:#7bc44e}
+    .tag-empty{background:rgba(255,255,255,.08);color:rgba(245,240,232,.3)}
+    .bg-drawn{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.35)}
+    .bg-available{background:rgba(74,124,31,.12);border:1px solid rgba(74,124,31,.25)}
+    .bg-empty{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+
+    /* PIN */
+    .pin-wrap{text-align:center;padding:32px 0}
+    .pin-wrap p{color:rgba(245,240,232,.6);margin-bottom:16px}
+    .pin-input{background:rgba(255,255,255,.08);border:1px solid rgba(201,168,76,.3);border-radius:8px;color:#f5f0e8;font-family:Georgia,serif;padding:10px 14px;width:140px;text-align:center;font-size:20px;outline:none;letter-spacing:8px;margin-bottom:14px}
+    .pin-input:focus{border-color:#C9A84C}
+    .pin-error{color:#e88;font-size:13px;margin-top:10px}
+
+    .bottom-summary{padding:14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(201,168,76,.2);text-align:center;margin-top:8px}
+    .bottom-summary p{color:#C9A84C;font-size:13px}
+
+    .section-divider{display:flex;align-items:center;gap:12px;margin:18px 0 16px}
+    .section-divider span{color:rgba(245,240,232,.3);font-size:12px;white-space:nowrap}
+    .section-divider::before,.section-divider::after{content:'';flex:1;border-top:1px solid rgba(201,168,76,.15)}
+
+    .not-registered-badge{font-size:11px;color:rgba(245,240,232,.35)}
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<!-- ═══════════ HOME ═══════════ -->
+<div id="screen-home" class="screen active">
+  <div class="wrap">
+    <div style="text-align:center;font-size:64px;margin-bottom:8px">🍀</div>
+    <h1>Feeling Lucky?</h1>
+    <p class="subtitle">Een spel voor twee</p>
+    <hr class="divider divider-gold" style="margin-bottom:28px">
+    <h3 style="text-align:center;margin-bottom:18px;color:rgba(245,240,232,.6);font-size:14px;font-weight:normal">Kies jouw profiel</h3>
+    <div class="profile-grid" id="profile-grid"></div>
+  </div>
+</div>
+
+<!-- ═══════════ AUTH (login + register combined) ═══════════ -->
+<div id="screen-auth" class="screen">
+  <div class="wrap">
+    <div class="header-row">
+      <button class="btn btn-back" onclick="showScreen('home')">← Terug</button>
+      <h2 style="margin:0" id="auth-title">Inloggen</h2>
+    </div>
+    <div class="auth-form">
+      <div class="avatar-big" id="auth-avatar"></div>
+      <div id="auth-register-block" style="display:none">
+        <p style="color:rgba(245,240,232,.7);font-size:14px;margin-bottom:16px;line-height:1.6">
+          Welkom! Maak hier jouw account aan. Je e-mailadres bepaalt welk profiel je bent.
+        </p>
+      </div>
+      <label>E-mailadres</label>
+      <input class="auth-input" type="email" id="auth-email" placeholder="jouw@email.com" oninput="onAuthInput()" />
+      <div id="auth-email-hint" class="auth-hint" style="display:none"></div>
+      <div id="auth-pw-block" style="display:none">
+        <label id="auth-pw-label">Wachtwoord</label>
+        <input class="auth-input" type="password" id="auth-password" placeholder="••••••••" oninput="onPwInput()" />
+        <div class="pw-strength" id="pw-strength-bar"></div>
+        <div id="auth-pw2-block" style="display:none">
+          <label>Herhaal wachtwoord</label>
+          <input class="auth-input" type="password" id="auth-password2" placeholder="••••••••" oninput="onAuthInput()" />
+        </div>
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+      <button class="btn btn-gold" id="auth-submit-btn" onclick="submitAuth()">Verder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<div id="screen-dashboard" class="screen">
+  <div class="wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="profile-badge">
+        <span id="dash-avatar"></span>
+        <span id="dash-name"></span>
+      </div>
+      <button class="btn profile-switch-btn" onclick="logoutProfile()">↩ Wissel profiel</button>
+    </div>
+    <hr class="divider" style="margin-bottom:20px">
+    <button class="btn btn-gold" onclick="showSetup()">✏️ Mijn opdrachten ingeven</button>
+    <button class="btn btn-green" id="btn-draw" onclick="drawRandom()">🎲 Trek een opdracht</button>
+    <div class="stats-box" id="home-stats" style="display:none">
+      <p id="home-stats-text"></p>
+    </div>
+    <hr class="divider" style="margin-top:24px">
+    <button class="btn btn-ghost" onclick="showMyAdmin()">🔒 Mijn opdrachten beheren</button>
+  </div>
+</div>
+
+<!-- ═══════════ SETUP ═══════════ -->
+<div id="screen-setup" class="screen">
+  <div class="wrap">
+    <div class="header-row">
+      <button class="btn btn-back" onclick="showScreen('dashboard')">← Terug</button>
+      <h2 style="margin:0">Mijn opdrachten</h2>
+    </div>
+    <div style="margin-bottom:18px">
+      <div class="profile-badge"><span id="setup-avatar"></span><span id="setup-name"></span></div>
+    </div>
+    <div class="theme-tabs">
+      <div class="theme-tab active-connectie" id="tab-connectie" onclick="switchTab('connectie')">🤍 Connectie</div>
+      <div class="theme-tab" id="tab-ontspanning" onclick="switchTab('ontspanning')">🌿 Ontspanning</div>
+      <div class="theme-tab" id="tab-intiem" onclick="switchTab('intiem')">🔥 Intiem</div>
+    </div>
+    <div class="task-group" id="setup-tasks"></div>
+    <button class="btn btn-gold" style="margin-top:24px" onclick="showScreen('dashboard')">✅ Opslaan & terug</button>
+  </div>
+</div>
+
+<!-- ═══════════ DRAW RESULT ═══════════ -->
+<div id="screen-draw" class="screen">
+  <div class="wrap">
+    <div class="draw-emoji">🎉</div>
+    <p class="draw-label">Thema</p>
+    <p class="draw-theme" id="draw-theme"></p>
+    <div class="draw-card"><p id="draw-text"></p></div>
+    <div class="draw-btns">
+      <button class="btn btn-ghost" style="flex:1" onclick="showScreen('dashboard')">← Terug</button>
+      <button class="btn btn-green" style="flex:2" id="btn-draw-again" onclick="drawRandom()">🎲 Trek nog een opdracht</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ BACKEND ═══════════ -->
+<div id="screen-backend" class="screen">
+  <div class="wrap">
+    <div class="header-row">
+      <button class="btn btn-back" onclick="adminLogout()">← Terug</button>
+      <h2 style="margin:0" id="backend-title">🔒 Mijn beheer</h2>
+    </div>
+    <div id="backend-tasks"></div>
+    <div class="bottom-summary"><p id="backend-summary"></p></div>
+    <hr class="divider" style="margin-top:24px">
+    <button class="btn btn-danger" id="btn-admin-reset-pw" onclick="adminResetPassword()" style="margin-top:8px">🔑 Mijn wachtwoord wissen</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// CONFIGURATIE
+// ══════════════════════════════════════════════════════════════
+// Vaste profielen — email adressen bepalen wie wie is
+const PROFILES = [
+  { id: "gill",    name: "Gill",    avatar: "🌸", email: "gillgourdin@hotmail.com"  },
+  { id: "melissa", name: "Melissa", avatar: "✨", email: "melissasmet92@gmail.com" },
+];
+
+// !! Verander dit naar jouw eigen e-mailadressen:
+// Gill:    vervang "gill@example.com"    met jouw echte e-mail
+// Melissa: vervang "melissa@example.com" met haar echte e-mail
+
+// ══════════════════════════════════════════════════════════════
+
+const THEMES = [
+  { id:"connectie",   label:"🤍 Connectie",   color:"#C9A84C" },
+  { id:"ontspanning", label:"🌿 Ontspanning",  color:"#4A7C1F" },
+  { id:"intiem",      label:"🔥 Intiem",       color:"#8B2E2E" },
+];
+
+function makeDefaultTasks(profileId) {
+  if (profileId === "gill") {
+    return {
+      connectie: [
+        {id:"c1", text:"Witte tantra oefeningen (met kaarslicht)", drawn:false},
+        {id:"c2", text:"Samen een gedicht maken (met kaarslicht)", drawn:false},
+        {id:"c3", text:"Stel elkaar deze 36 vragen (met kaarslicht) https://share.google/teMf8HMjaYi4MgHiC", drawn:false},
+      ],
+      ontspanning: [
+        {id:"o1", text:"Volledige massage: Rug, armen of Rug en benen. (Muziek)", drawn:false},
+        {id:"o2", text:"3 concrete gezamenlijke toekomstdromen opschrijven. Kan vanalles zijn en bespreek. (Muziek)", drawn:false},
+        {id:"o3", text:"Samen een ontspannend bad nemen met muziek.", drawn:false},
+      ],
+      intiem: [
+        {id:"i1", text:"Naakte full body massage krijgen: met volledig lichaam mijn lichaam masseren (kaarslicht en muziek)", drawn:false},
+        {id:"i2", text:"Samen in bad gaan en elkaar wassen! Overal! (Kaarslicht en muziek)", drawn:false},
+        {id:"i3", text:"Minimum 10 min lang gepassioneerd kussen. Zonder dat het iets anders hoeft te worden, of toch? ☺️ (Kaarslicht en muziek)", drawn:false},
+      ],
+    };
+  }
+  return {
+    connectie:   [{id:"c1",text:"",drawn:false},{id:"c2",text:"",drawn:false},{id:"c3",text:"",drawn:false}],
+    ontspanning: [{id:"o1",text:"",drawn:false},{id:"o2",text:"",drawn:false},{id:"o3",text:"",drawn:false}],
+    intiem:      [{id:"i1",text:"",drawn:false},{id:"i2",text:"",drawn:false},{id:"i3",text:"",drawn:false}],
+  };
+}
+
+// ── Simple hash (not cryptographic, just obfuscation for localStorage) ────
+async function hashPw(pw) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw + "fl_salt_2024"));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+// ── Storage ───────────────────────────────────────────────────
+function loadTasks(profileId) {
+  try {
+    const s = localStorage.getItem("fl_tasks_" + profileId);
+    return s ? JSON.parse(s) : makeDefaultTasks(profileId);
+  } catch(e) { return makeDefaultTasks(profileId); }
+}
+function saveTasks(profileId, data) {
+  try { localStorage.setItem("fl_tasks_" + profileId, JSON.stringify(data)); } catch(e) {}
+}
+function loadHash(profileId) {
+  return localStorage.getItem("fl_pw_" + profileId) || null;
+}
+function saveHash(profileId, hash) {
+  localStorage.setItem("fl_pw_" + profileId, hash);
+}
+function deleteHash(profileId) {
+  localStorage.removeItem("fl_pw_" + profileId);
+}
+
+// ── State ─────────────────────────────────────────────────────
+let currentProfile   = null;
+let currentTasks     = null;
+let activeTab        = "connectie";
+let adminUnlocked    = false;
+let adminViewProfile = null;
+
+// Auth flow state
+let authMode = ""; // "login" | "register"
+let authProfile = null;
+
+// ── Stars ─────────────────────────────────────────────────────
+const starsEl = document.getElementById("stars");
+for (let i=0;i<22;i++) {
+  const s = document.createElement("div");
+  s.className="star";
+  const size=Math.random()*3+1;
+  s.style.cssText=`width:${size}px;height:${size}px;opacity:${Math.random()*.5+.2};left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${Math.random()*3+2}s;animation-delay:${Math.random()*3}s;`;
+  starsEl.appendChild(s);
+}
+
+// ── Screens ───────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("screen-"+id).classList.add("active");
+}
+
+// ── Home: build profile cards ─────────────────────────────────
+function buildProfileGrid() {
+  const grid = document.getElementById("profile-grid");
+  grid.innerHTML = "";
+  PROFILES.forEach(p => {
+    const hasAccount = !!loadHash(p.id);
+    const card = document.createElement("div");
+    card.className = "profile-card" + (hasAccount ? " registered" : "");
+    card.innerHTML = `
+      <div class="profile-avatar">${p.avatar}</div>
+      <div class="profile-name">${p.name}</div>
+      <div class="profile-sub">${hasAccount ? "✓ account aangemaakt" : "Nog geen account"}</div>
+    `;
+    card.onclick = () => openAuth(p);
+    grid.appendChild(card);
+  });
+}
+
+// ── Auth screen ───────────────────────────────────────────────
+function openAuth(profile) {
+  authProfile = profile;
+  const hasAccount = !!loadHash(profile.id);
+  authMode = hasAccount ? "login" : "register";
+
+  document.getElementById("auth-title").textContent = hasAccount ? profile.name : "Account aanmaken";
+  document.getElementById("auth-avatar").textContent = profile.avatar;
+  document.getElementById("auth-email").value = "";
+  document.getElementById("auth-password").value = "";
+  document.getElementById("auth-password2").value = "";
+  document.getElementById("auth-error").textContent = "";
+  document.getElementById("pw-strength-bar").className = "pw-strength";
+
+  // Register block message
+  document.getElementById("auth-register-block").style.display = hasAccount ? "none" : "block";
+
+  // Hide pw fields initially — shown after email matches
+  document.getElementById("auth-pw-block").style.display = "none";
+  document.getElementById("auth-pw2-block").style.display = "none";
+  document.getElementById("auth-email-hint").style.display = "none";
+  document.getElementById("auth-pw-label").textContent = hasAccount ? "Wachtwoord" : "Kies een wachtwoord";
+  document.getElementById("auth-submit-btn").textContent = hasAccount ? "Inloggen" : "Account aanmaken";
+
+  showScreen("auth");
+  setTimeout(()=>document.getElementById("auth-email").focus(), 300);
+}
+
+function onAuthInput() {
+  const email = document.getElementById("auth-email").value.trim().toLowerCase();
+  const errEl = document.getElementById("auth-error");
+  errEl.textContent = "";
+
+  // Check if email matches this profile
+  const expectedEmail = authProfile.email.toLowerCase();
+  const emailMatches = email === expectedEmail;
+
+  const pwBlock = document.getElementById("auth-pw-block");
+  const hintEl  = document.getElementById("auth-email-hint");
+
+  if (email.length > 3 && email.includes("@")) {
+    if (emailMatches) {
+      pwBlock.style.display = "block";
+      hintEl.style.display = "none";
+      if (authMode === "register") {
+        document.getElementById("auth-pw2-block").style.display = "block";
+      }
+    } else {
+      pwBlock.style.display = "none";
+      hintEl.style.display = "block";
+      hintEl.textContent = "Dit e-mailadres hoort niet bij dit profiel.";
+    }
+  } else {
+    pwBlock.style.display = "none";
+    hintEl.style.display = "none";
+  }
+}
+
+function onPwInput() {
+  const pw = document.getElementById("auth-password").value;
+  const bar = document.getElementById("pw-strength-bar");
+  if (authMode === "register") {
+    if (pw.length === 0) bar.className = "pw-strength";
+    else if (pw.length < 6) bar.className = "pw-strength weak";
+    else if (pw.length < 10) bar.className = "pw-strength ok";
+    else bar.className = "pw-strength strong";
+  }
+  onAuthInput();
+}
+
+async function submitAuth() {
+  const email = document.getElementById("auth-email").value.trim().toLowerCase();
+  const pw    = document.getElementById("auth-password").value;
+  const pw2   = document.getElementById("auth-password2").value;
+  const errEl = document.getElementById("auth-error");
+
+  if (email !== authProfile.email.toLowerCase()) {
+    showError("Dit e-mailadres klopt niet voor dit profiel."); return;
+  }
+  if (!pw) { showError("Voer een wachtwoord in."); return; }
+
+  if (authMode === "register") {
+    if (pw.length < 6) { showError("Kies een wachtwoord van minstens 6 tekens."); return; }
+    if (pw !== pw2)    { showError("De wachtwoorden komen niet overeen."); return; }
+    const hash = await hashPw(pw);
+    saveHash(authProfile.id, hash);
+    buildProfileGrid();
+    loginProfile(authProfile);
+  } else {
+    const hash = await hashPw(pw);
+    const stored = loadHash(authProfile.id);
+    if (hash === stored) {
+      loginProfile(authProfile);
+    } else {
+      showError("Fout wachtwoord, probeer opnieuw.");
+      document.getElementById("auth-password").value = "";
+      document.getElementById("auth-password").focus();
+    }
+  }
+}
+
+function showError(msg) {
+  const errEl = document.getElementById("auth-error");
+  errEl.textContent = msg;
+  errEl.classList.remove("shake");
+  void errEl.offsetWidth;
+  errEl.classList.add("shake");
+}
+
+function loginProfile(profile) {
+  currentProfile = profile;
+  currentTasks   = loadTasks(profile.id);
+  activeTab      = "connectie";
+
+  document.getElementById("dash-avatar").textContent  = profile.avatar;
+  document.getElementById("dash-name").textContent    = profile.name;
+  document.getElementById("setup-avatar").textContent = profile.avatar;
+  document.getElementById("setup-name").textContent   = profile.name;
+
+  showScreen("dashboard");
+  updateDashStats();
+}
+
+function logoutProfile() {
+  currentProfile = null;
+  currentTasks   = null;
+  showScreen("home");
+}
+
+// ── Dashboard stats ───────────────────────────────────────────
+function getStats(tasks) {
+  const all     = Object.values(tasks).flat();
+  const filled  = all.filter(t=>t.text.trim()).length;
+  const drawn   = all.filter(t=>t.drawn).length;
+  return { filled, drawn, available: filled - drawn };
+}
+
+function updateDashStats() {
+  const { drawn, available } = getStats(currentTasks);
+  const box = document.getElementById("home-stats");
+  if (drawn > 0) {
+    box.style.display = "block";
+    document.getElementById("home-stats-text").textContent =
+      `${drawn} opdracht${drawn!==1?"en":""} al getrokken · ${available} resterend`;
+  } else {
+    box.style.display = "none";
+  }
+  const btnDraw = document.getElementById("btn-draw");
+  if (available === 0) {
+    btnDraw.classList.add("btn-disabled");
+    btnDraw.textContent = "🎲 Geen opdrachten meer";
+  } else {
+    btnDraw.classList.remove("btn-disabled");
+    btnDraw.textContent = `🎲 Trek een opdracht (${available} beschikbaar)`;
+  }
+}
+
+// ── Setup ─────────────────────────────────────────────────────
+function showSetup() {
+  activeTab = "connectie";
+  document.querySelectorAll(".theme-tab").forEach(t=>t.className="theme-tab");
+  document.getElementById("tab-connectie").className = "theme-tab active-connectie";
+  renderSetup();
+  showScreen("setup");
+}
+
+function switchTab(id) {
+  activeTab = id;
+  document.querySelectorAll(".theme-tab").forEach(t=>t.className="theme-tab");
+  document.getElementById("tab-"+id).className = "theme-tab active-"+id;
+  renderSetup();
+}
+
+function renderSetup() {
+  const container = document.getElementById("setup-tasks");
+  container.innerHTML = "";
+  currentTasks[activeTab].forEach((task,i) => {
+    const div = document.createElement("div");
+    div.className = "task-item";
+    div.innerHTML = `
+      <label>Opdracht ${i+1}${task.drawn?'<span class="drawn-tag">✓ al getrokken</span>':''}</label>
+      <textarea rows="2" placeholder="Opdracht ${i+1}..." ${task.drawn?'style="opacity:.5"':''}>${task.text}</textarea>
+    `;
+    div.querySelector("textarea").addEventListener("input",e=>{
+      currentTasks[activeTab][i].text = e.target.value;
+      saveTasks(currentProfile.id, currentTasks);
+      updateDashStats();
+    });
+    container.appendChild(div);
+  });
+}
+
+// ── Draw ──────────────────────────────────────────────────────
+function drawRandom() {
+  const available = [];
+  THEMES.forEach(theme => {
+    currentTasks[theme.id].forEach(task => {
+      if (task.text.trim() && !task.drawn)
+        available.push({themeId:theme.id,themeLabel:theme.label,taskId:task.id,text:task.text});
+    });
+  });
+  if (!available.length) return;
+
+  const btnDraw = document.getElementById("btn-draw");
+  btnDraw.innerHTML = '<span class="spinning">🎲</span> Trekken...';
+  btnDraw.classList.add("btn-disabled");
+
+  setTimeout(() => {
+    const pick = available[Math.floor(Math.random()*available.length)];
+    currentTasks[pick.themeId].find(t=>t.id===pick.taskId).drawn = true;
+    saveTasks(currentProfile.id, currentTasks);
+
+    document.getElementById("draw-theme").textContent = pick.themeLabel;
+    document.getElementById("draw-text").textContent  = '"' + pick.text + '"';
+
+    const { available: avail } = getStats(currentTasks);
+    const btnAgain = document.getElementById("btn-draw-again");
+    if (avail===0) {
+      btnAgain.classList.add("btn-disabled");
+      btnAgain.textContent = "Geen opdrachten meer";
+    } else {
+      btnAgain.classList.remove("btn-disabled");
+      btnAgain.textContent = "🎲 Trek nog een opdracht";
+    }
+
+    showScreen("draw");
+    updateDashStats();
+  }, 1400);
+}
+
+// ── Admin (per profiel, eigen wachtwoord) ─────────────────────
+function showMyAdmin() {
+  if (!currentProfile) return;
+  adminUnlocked    = true;
+  adminViewProfile = currentProfile;
+  document.getElementById("backend-title").textContent = currentProfile.avatar + " " + currentProfile.name + " · beheer";
+  renderAdmin();
+  showScreen("backend");
+}
+
+function adminLogout() {
+  adminUnlocked    = false;
+  adminViewProfile = null;
+  showScreen("dashboard");
+}
+
+function renderAdmin() {
+  if (!adminUnlocked || !adminViewProfile) return;
+
+  const tasks     = loadTasks(adminViewProfile.id);
+  const container = document.getElementById("backend-tasks");
+  container.innerHTML = "";
+
+  THEMES.forEach(theme => {
+    const section = document.createElement("div");
+    section.style.marginBottom = "22px";
+    section.innerHTML = `<h3 style="color:${theme.color}">${theme.label}</h3>`;
+
+    tasks[theme.id].forEach((task,i) => {
+      const cls    = task.drawn ? "bg-drawn"     : task.text ? "bg-available" : "bg-empty";
+      const tagCls = task.drawn ? "tag-drawn"    : task.text ? "tag-available" : "tag-empty";
+      const tagTxt = task.drawn ? "getrokken"    : task.text ? "beschikbaar"  : "leeg";
+      const icon   = task.drawn ? "✅"            : task.text ? "⏳"           : "⬜";
+
+      let actionBtns = `<span class="tag ${tagCls}">${tagTxt}</span>`;
+      if (task.drawn) {
+        actionBtns += `<button class="btn btn-small btn-reset" onclick="adminResetTask('${theme.id}','${task.id}')">↺ Reset</button>`;
+      } else if (task.text.trim()) {
+        actionBtns += `<button class="btn btn-small btn-mark" onclick="adminMarkDrawn('${theme.id}','${task.id}')">✓ Markeer getrokken</button>`;
+      }
+
+      const div = document.createElement("div");
+      div.className = `backend-task ${cls}`;
+      div.innerHTML = `
+        <span style="font-size:18px">${icon}</span>
+        <div class="task-text">
+          <div class="task-num">Opdracht ${i+1}</div>
+          <div class="task-val" style="color:${task.text?'#f5f0e8':'rgba(245,240,232,.25)'};font-style:${task.text?'normal':'italic'}">
+            ${task.text || "Nog niet ingevuld"}
+          </div>
+        </div>
+        <div class="task-actions">${actionBtns}</div>
+      `;
+      section.appendChild(div);
+    });
+    container.appendChild(section);
+  });
+
+  const { drawn, available, filled } = getStats(tasks);
+  const total = Object.values(tasks).flat().length;
+  document.getElementById("backend-summary").textContent =
+    `${drawn} getrokken · ${available} beschikbaar · ${total-filled} leeg`;
+}
+
+function adminResetTask(themeId, taskId) {
+  const tasks = loadTasks(adminViewProfile.id);
+  tasks[themeId].find(t=>t.id===taskId).drawn = false;
+  saveTasks(adminViewProfile.id, tasks);
+  currentTasks = tasks;
+  updateDashStats();
+  renderAdmin();
+}
+
+function adminMarkDrawn(themeId, taskId) {
+  const tasks = loadTasks(adminViewProfile.id);
+  tasks[themeId].find(t=>t.id===taskId).drawn = true;
+  saveTasks(adminViewProfile.id, tasks);
+  currentTasks = tasks;
+  updateDashStats();
+  renderAdmin();
+}
+
+function adminResetPassword() {
+  if (!adminViewProfile) return;
+  const name = adminViewProfile.name;
+  if (!confirm(`Jouw wachtwoord wissen? Je moet dan een nieuw wachtwoord kiezen bij de volgende login.`)) return;
+  deleteHash(adminViewProfile.id);
+  adminLogout();
+  logoutProfile();
+  buildProfileGrid();
+}
+
+// ── Enter key support ─────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const screen = document.querySelector(".screen.active");
+    if (!screen) return;
+    if (screen.id === "screen-auth") submitAuth();
+  }
+});
+
+// ── Init ──────────────────────────────────────────────────────
+buildProfileGrid();
+</script>
+</body>
+</html>
